@@ -9,6 +9,7 @@ import requests
 # import seleniumwire.undetected_chromedriver.v2 as uc
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
+from selenium_stealth import stealth
 
 from .ProxyManager import proxy_manager
 
@@ -20,6 +21,15 @@ SLOTS_API_URL = "https://lift-api.vfsglobal.com/appointment/CheckIsSlotAvailable
 class VFSparser:
     def __init__(self, *args, **kwargs):
         self.driver = uc.Chrome(options=self.get_chrome_options())
+        stealth(
+            self.driver,
+            languages=["en-US", "en"],
+            vendor="Google Inc.",
+            platform="Win32",
+            webgl_vendor="Intel Inc.",
+            renderer="Intel Iris OpenGL Engine",
+            fix_hairline=True,
+        )
         self.driver.execute_cdp_cmd("Network.enable", {})
         self.driver.delete_all_cookies()
         self.username = os.environ.get("VFS_USERNAME")
@@ -43,10 +53,15 @@ class VFSparser:
     def get_chrome_options(self):
         chrome_options = uc.ChromeOptions()
         chrome_options.add_argument("--auto-open-devtools-for-tabs")
-        # chrome_options.add_argument("--headless")
         chrome_options.add_argument("--disable-gpu")
         chrome_options.add_argument("--mute-audio")
         chrome_options.add_argument("--ignore-certificate-errors")
+        chrome_options.add_argument("--headless")
+        chrome_options.add_argument("start-maximized")
+        ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
+        chrome_options.add_argument(f"--user-agent={ua}")
+        # chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        # chrome_options.add_experimental_option("useAutomationExtension", False)
         chrome_options.add_argument("--ignore-ssl-errors")
         chrome_options.add_argument("--disable-infobars")
         chrome_options.add_argument("--ignore-certificate-errors-spki-list")
@@ -76,6 +91,7 @@ class VFSparser:
         iteration = 0
         while True:
             if iteration > timeout:
+                self.get_screenshoot(f"{by}_{value}.png")
                 logging.error(f"Failed to find element by {by} and value {value}")
                 raise Exception(f"Failed to find element by {by} and value {value}")
             try:
@@ -87,6 +103,9 @@ class VFSparser:
             finally:
                 iteration += 1
                 time.sleep(1)
+
+    def get_screenshoot(self, name):
+        self.driver.save_screenshot(f"/errors_screens/{name}.png")
 
     def get_check_status_code(self, code, log, url, *args):
         log = json.loads(log["message"])["message"]
@@ -103,7 +122,7 @@ class VFSparser:
     async def set_up_driver_extension(self):
         # Открытие страницы
         self.driver.get("chrome://extensions/")
-
+        By.TAG_NAME
         # Извлечение идентификатора расширения
         script = """
             const extension = document.getElementsByTagName('extensions-manager')[0].shadowRoot.getElementById('items-list').shadowRoot.querySelectorAll('extensions-item')
@@ -140,6 +159,7 @@ class VFSparser:
                 )
                 or self.get_check_status_code(429, log, "https://visa.vfsglobal.com/")
             ):
+                self.get_screenshoot(f"{proxy_manager.get_proxy_string}_{429}.png")
                 raise Exception("Blocked by captcha")
 
     async def open_page(self):
@@ -180,12 +200,10 @@ class VFSparser:
 
     def press_book_appointment(self):
         try:
-            span = self.get_element(
-                By.XPATH, f"//span[text()=' Start New Booking ']", 30
-            )
-
-            span.click()
+            button = self.get_element(By.CLASS_NAME, "custom-height-button", 30)
+            button.click()
         except Exception as e:
+            self.get_screenshoot("/errors/book_appointment.png")
             raise Exception("Failed to find book appointment button")
 
     def get_cities_from_logs(self, log, url, *args):
