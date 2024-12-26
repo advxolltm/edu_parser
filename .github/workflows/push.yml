@@ -1,0 +1,21 @@
+name: 'Edu_parser deploy'
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to test production
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          USERNAME: ${{ secrets.HOST_USERNAME }}
+          PASSWORD: ${{ secrets.HOST_PASSWORD }}
+          script: |
+            cd edu_parser/
+            git pull https://${{ secrets.GH_USERNAME }}:${{ secrets.GH_ACCESS_TOKEN }}@github.com/advxolltm/edu_parser main

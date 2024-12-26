@@ -1,0 +1,41 @@
+# Используем ARM-совместимый образ Python
+FROM selenium/standalone-chrome
+
+
+WORKDIR /app
+USER root
+
+
+COPY config/requirements.txt .
+COPY . .
+
+RUN apt-get update && \
+    apt-get install -y python3 python3-pip && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
+    rm -rf /var/lib/apt/lists/*
+
+
+RUN apt-get update && apt-get install -y python3-venv
+RUN python -m venv /app/venv
+
+RUN /app/venv/bin/pip install --upgrade pip
+RUN /app/venv/bin/pip install -r requirements.txt
+RUN /app/venv/bin/pip install --upgrade setuptools
+RUN /app/venv/bin/pip install debugpy
+
+
+
+# RUN /venv/bin/pip install --no-cache-dir -r requirements.txt
+
+# RUN source /venv/bin/activate
+
+# ENV PATH="/app/venv/bin:$PATH"
+
+# CMD ["python", "main.py"]
+# Открываем порт для дебаггера
+EXPOSE 5678
+
+# Запуск приложения с debugpy
+CMD ["/app/venv/bin/python", "main.py"]
+
+## docker build -t consule_app -f ./config/dockerfile .
